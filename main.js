@@ -7,7 +7,7 @@ console.log(regExp, typeof (regExp));
 // m: \n match $/^
 // s: 'dotall' dot match \n
 // u: full unicode support
-// y: sticky
+// y: sticky The flag y makes regexp.exec to search exactly at position lastIndex, not “starting from” it.
 
 
 //NOTE: read doc here
@@ -44,8 +44,10 @@ console.log('😄'.length, 'a'.length)// 2 1
 
 //no match this
 //\p{} means a character class: \p{L} = \p{Letter}
-console.log('一加'.match(/\p{L}/g));
+
+//wrong: console.log('一加'.match(/\p{L}/g));
 console.log('一加'.match(/\p{L}/gu));
+
 //NOTE: detail in cheatsheet
 console.log("number: xAF".match(/x\p{Hex_Digit}\p{Hex_Digit}/u));
 console.log(`Hello Привет 你好 123_456`.match(/\p{sc=Han}/gu));
@@ -147,6 +149,83 @@ let str = `
 console.log(str.match(regexp));
 console.log(str.replace(regexp, `<h1>Hello</h1>`));
 
-//VERY BAD EXAMPLE!
+//VERY BAD EXAMPLE! tiem bloated, think why?
+//阶乘级膨胀，会尝试完所有的排列组合，lazy mode isn't working
 // console.log("012345678901234567890123456789z".match(/^(\d+)*$/));
+// console.log("An input string that takes a long time or even makes this regexp hang!".match(/^(\w+\s?)*$/))
 
+//fix
+console.log("An input string that takes a long time or even makes this regexp hang!".match(/^(\w+\s)*\w*$/))
+
+
+console.log("JavaScript".match(/\w+Script/)); // JavaScript
+//this pattern prevents backtrack
+console.log("JavaScript".match(/(?=(\w+))\1Script/)); // null
+
+//final fix
+console.log("An input string that takes a long time or even makes this regexp hang!".match(/^((?=(\w+))\2\s?)*$/))
+
+
+//sticy y
+str = 'let varName = "value"';
+
+regexp = /\w+/y;
+
+regexp.lastIndex = 3;
+console.log(regexp.exec(str)); // null (there's a space at position 3, not a word)
+
+regexp.lastIndex = 4;
+console.log(regexp.exec(str)); // varName (word at position 4)
+
+// Imagine, we have a long text, and there are no matches in it, at all. Then a search with flag g will go till the end of the text and find nothing, and this will take significantly more time than the search with flag y, that checks only the exact position.
+
+// https://javascript.info/regexp-methods
+str = "I love JavaScript";
+console.log(str.match(/Java(Script)/));
+console.log(str.match(/Java(Script)/g));
+console.log(Array.from(str.matchAll(/Java(Script)/g)));
+
+console.log('12-34-56'.split('-'));
+console.log('12, 34, 56'.split(/,\s*/));
+
+console.log("A drop of ink may make a million think".search(/ink/i));
+
+//When the first argument of replace is a string, it only replaces the first match.
+console.log('12-34-56'.replace("-", ":"))
+console.log('12-34-56'.replaceAll("-", ":"));
+console.log('12-34-56'.replace(/-/g, ":"));
+
+// func(match, p1, p2, ..., pn, offset, input, groups)
+// p1, p2, ..., pn – contents of capturing groups (if there are any),
+console.log("html and css".replace(/html|css/gi, str => str.toUpperCase()));
+console.log("Ho-Ho-ho".replace(/ho/gi, (match, offset) => offset));
+console.log("John Smith".replace(/(\w+) (\w+)/, (match, name, surname) => `${surname}, ${name}`));
+console.log("John Smith".replace(/(\w+) (\w+)/, (...match) => `${match[2]}, ${match[1]}`));
+console.log(
+    "John Smith".replace(/(?<name>\w+) (?<surname>\w+)/, (...match) => {
+        let groups = match.pop();
+
+        return `${groups.surname}, ${groups.name}`;
+    })
+)
+
+//exec
+// If there’s no g, then regexp.exec(str) returns the first match exactly as str.match(regexp). This behavior doesn’t bring anything new.
+// with g:
+// A call to regexp.exec(str) returns the first match
+// and Saves the position immediately after it in the property regexp.lastIndex.
+
+str = 'More about JavaScript at https://javascript.info';
+regexp = /javascript/ig;
+
+let result;
+
+while (result = regexp.exec(str)) {
+    console.log(`Found ${result[0]} at position ${result.index}`);
+}
+
+
+regexp = /love/i
+regexp.test("Lovey")
+//should reset for next testing
+regexp.lastIndex = 0
